@@ -14,28 +14,8 @@ end
 
 function audio.togglemute()
     local mute = ismute()
-    local label
-    if mute then
-        mute = 'no'
-        label = '♪'
-    else
-        mute = 'yes'
-        label = ''
-    end
-    mod_statusbar.inform('audio', label)
-    mod_statusbar.update()
+    if mute then mute = 'no' else mute = 'yes' end
     -- Googled for execute first, then checked its description in PIL
+    -- FIXME ioncore.exec()?
     os.execute('pactl set-sink-mute 0 ' .. mute)
-end
-
-function audio.setlabel()
-    local mute = ismute()
-    local label
-    if mute then
-        label = ''
-    else
-        label = '♪'
-    end
-    mod_statusbar.inform('audio', label)
-    mod_statusbar.update()
 end
