@@ -12,10 +12,40 @@ local function ismute()
     end
 end
 
+local function volume()
+    local p = io.popen('pacmd dump')
+    local volume
+    for l in p:lines() do
+        _, _, volume = string.find(l, 'set%-sink%-volume %S+ (%S+)')
+        if volume then
+            return tonumber(volume)
+        end
+    end
+end
+
 function audio.togglemute()
     local mute = ismute()
     if mute then mute = 'no' else mute = 'yes' end
-    -- Googled for execute first, then checked its description in PIL
-    -- FIXME ioncore.exec()?
-    os.execute('pactl set-sink-mute 0 ' .. mute)
+    ioncore.exec('pactl set-sink-mute 0 ' .. mute)
 end
+
+function audio.up()
+    ioncore.exec('pactl set-sink-volume 0 ' .. volume() + 0xf00)
+end
+
+function audio.down()
+    local volume = volume() - 0xf00
+    if volume < 0 then volume = 0 end
+    ioncore.exec('pactl set-sink-volume 0 ' .. volume)
+end
+
+defbindings("WMPlex.toplevel", {
+    bdoc("Increase volume."),
+    kpress(META.."plus", "audio.up()"),
+
+    bdoc("Decrease volume."),
+    kpress(META.."minus", "audio.down()"),
+
+    bdoc("Mute volume."),
+    kpress(META.."Mod1+minus", "audio.togglemute()"),
+})
