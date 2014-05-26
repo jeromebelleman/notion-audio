@@ -5,9 +5,9 @@ local function ismute()
     local p = io.popen('pacmd dump')
     local mute
     for l in p:lines() do
-        _, _, mute = string.find(l, 'set%-sink%-mute %S+ (%a+)')
+        _, _, mute = string.find(l, 'set%-sink%-mute %S+analog%S+ (%a+)')
         if mute then
-            if mute == 'yes' then return true else return false end
+            return mute == 'yes'
         end
     end
 end
@@ -16,7 +16,7 @@ local function volume()
     local p = io.popen('pacmd dump')
     local volume
     for l in p:lines() do
-        _, _, volume = string.find(l, 'set%-sink%-volume %S+ (%S+)')
+        _, _, volume = string.find(l, 'set%-sink%-volume %S+analog%S+ (%S+)')
         if volume then
             return tonumber(volume)
         end
@@ -26,17 +26,25 @@ end
 function audio.togglemute()
     local mute = ismute()
     if mute then mute = 'no' else mute = 'yes' end
-    ioncore.exec('pactl set-sink-mute 0 ' .. mute)
+    ioncore.exec('pactl set-sink-mute ' .. audio.sink .. ' ' .. mute)
 end
 
 function audio.up()
-    ioncore.exec('pactl set-sink-volume 0 ' .. volume() + 0xf00)
+    ioncore.exec('pactl set-sink-volume -- ' .. audio.sink .. ' +5%')
 end
 
 function audio.down()
-    local volume = volume() - 0xf00
-    if volume < 0 then volume = 0 end
-    ioncore.exec('pactl set-sink-volume 0 ' .. volume)
+    ioncore.exec('pactl set-sink-volume -- ' .. audio.sink .. ' -5%')
+end
+
+function audio.getsink()
+    local pipe = io.popen('pactl list short sinks')
+    for line in pipe:lines() do
+        _, _, sink = string.find(line, '(%d+)%s+%S+analog%S+')
+        if sink then
+            return sink
+        end
+    end
 end
 
 defbindings("WMPlex.toplevel", {
@@ -49,3 +57,5 @@ defbindings("WMPlex.toplevel", {
     bdoc("Mute volume."),
     kpress(META.."Mod1+minus", "audio.togglemute()"),
 })
+
+audio.sink = audio.getsink()
